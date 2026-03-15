@@ -26,6 +26,7 @@ from litellm.exceptions import (
     AuthenticationError,
     BadRequestError,
     ContextWindowExceededError,
+    NotFoundError,
 )
 
 logger = logging.getLogger(__name__)
@@ -272,6 +273,17 @@ class LLMRouter:
 
             except AuthenticationError as e:
                 self._disable_slot(slot, f"AuthenticationError: {e}")
+
+            except NotFoundError as e:
+                err_str = str(e).lower()
+                if "guardrail" in err_str or "data policy" in err_str or "privacy" in err_str:
+                    self._disable_slot(slot, f"Account privacy restriction — fix at openrouter.ai/settings/privacy: {e}")
+                elif "no endpoints" in err_str:
+                    self._disable_slot(slot, f"No endpoints available: {e}")
+                else:
+                    # Model temporarily missing — long cooldown
+                    print(f"  [router] Not found on {slot['name']} — cooldown 120s")
+                    self._set_cooldown(slot, 120)
 
             except ContextWindowExceededError:
                 # Propagate — harness handles trimming

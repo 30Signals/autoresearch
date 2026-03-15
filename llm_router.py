@@ -202,9 +202,14 @@ class LLMRouter:
                 # Propagate — harness handles trimming
                 raise
 
-            except BadRequestError:
-                # Propagate — harness handles or fails
-                raise
+            except BadRequestError as e:
+                err_str = str(e).lower()
+                # Decommissioned / unsupported models should disable the slot permanently
+                if any(kw in err_str for kw in ("decommissioned", "not supported", "deprecated", "no longer")):
+                    self._disable_slot(slot, f"Model decommissioned: {e}")
+                else:
+                    # Other bad requests (e.g. invalid params) — propagate
+                    raise
 
             except Exception as e:
                 print(f"  [router] Unexpected error on {slot['name']}: {type(e).__name__}: {e} — cooldown 10s")

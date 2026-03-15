@@ -198,7 +198,9 @@ def tool_git_commit(message: str) -> str:
     try:
         subprocess.run(["git", "add", "-A"], check=True, capture_output=True)
         result = subprocess.run(
-            ["git", "commit", "-m", message],
+            ["git", "commit",
+             "--author=autoresearch <agent@autoresearch.local>",
+             "-m", message],
             capture_output=True,
             text=True,
         )
@@ -290,7 +292,7 @@ def ensure_git_configured():
     if not git_get("user.email"):
         subprocess.run(["git", "config", "user.email", "autoresearch@agent.local"], check=True)
     if not git_get("user.name"):
-        subprocess.run(["git", "config", "user.name", "Autoresearch Agent"], check=True)
+        subprocess.run(["git", "config", "user.name", "autoresearch"], check=True)
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +422,9 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
             print("\n[harness] Research complete! Auto-committing any remaining changes...")
             subprocess.run(["git", "add", "-A"])
             subprocess.run([
-                "git", "commit", "-m", "auto-commit: research complete", "--allow-empty"
+                "git", "commit",
+                "--author=autoresearch <agent@autoresearch.local>",
+                "-m", "auto-commit: research complete", "--allow-empty"
             ])
             print("[harness] Done.")
             return

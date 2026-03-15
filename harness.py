@@ -30,12 +30,18 @@ SYSTEM_PROMPT = """\
 You are an autonomous research agent and software engineer.
 
 Rules:
-- Round 1: read program.md, create evals/criteria.md with measurable success criteria
-- Every round: read journal.md to recall progress
+- Round 1: read program.md, then create evals/criteria.md as a markdown checklist:
+    - [ ] Each line is one concrete, verifiable deliverable
+    - Use exactly this format: "- [ ] <criterion>" (unchecked) / "- [x] <criterion>" (done)
+    - Be specific: filenames, metric names, thresholds — not vague goals
+- Every round: read journal.md to recall progress, then work toward unchecked criteria
 - Write Python with write_file(), run it with bash()
+- After completing each criterion, update evals/criteria.md: change "- [ ]" to "- [x]"
 - Append findings to journal.md every round (read first, then write full content)
 - Call git_commit("msg") when you've made meaningful progress — this ends the round
-- Call done("summary") when ALL success criteria are met
+- Call done("summary") only when you believe ALL criteria are checked off.
+  done() will be REJECTED and return the list of remaining unchecked criteria if any exist.
+  Fix them before calling done() again.
 - Never ask for confirmation — make decisions and execute
 - Debug failures in the same round; don't give up
 - Save all results (CSV, plots) to results/
@@ -121,11 +127,15 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "done",
-            "description": "Signal that all success criteria are met. Ends research.",
+            "description": (
+                "Signal that all success criteria in evals/criteria.md are met. "
+                "Will be REJECTED (returning remaining unchecked items) if any '- [ ]' lines exist. "
+                "Update criteria.md to '- [x]' for each completed item before calling this."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "summary": {"type": "string", "description": "Summary of research results"},
+                    "summary": {"type": "string", "description": "Summary of research results and findings"},
                 },
                 "required": ["summary"],
             },
@@ -215,11 +225,23 @@ def tool_git_commit(message: str) -> str:
 
 
 def tool_done(summary: str) -> str:
+    # Gate: check evals/criteria.md for unchecked items before accepting done()
+    criteria_path = Path("evals/criteria.md")
+    if criteria_path.exists():
+        lines = criteria_path.read_text(encoding="utf-8").splitlines()
+        unchecked = [l.strip() for l in lines if l.strip().startswith("- [ ]")]
+        if unchecked:
+            items = "\n".join(f"  {u}" for u in unchecked)
+            return (
+                f"REJECTED — {len(unchecked)} criterion/criteria not yet completed:\n{items}\n\n"
+                "Complete these, update evals/criteria.md (change '- [ ]' to '- [x]'), then call done() again."
+            )
+
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
     summary_path = results_dir / "SUMMARY.md"
     summary_path.write_text(f"# Research Summary\n\n{summary}\n", encoding="utf-8")
-    return f"Research marked complete. Summary saved to results/SUMMARY.md"
+    return "ACCEPTED — Research complete. Summary saved to results/SUMMARY.md"
 
 
 # ---------------------------------------------------------------------------
@@ -412,7 +434,7 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
 
                 if tc["name"] == "git_commit":
                     round_done = True
-                if tc["name"] == "done":
+                if tc["name"] == "done" and result.startswith("ACCEPTED"):
                     research_done = True
 
             if round_done or research_done:

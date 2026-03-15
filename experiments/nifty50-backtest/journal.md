@@ -1,1 +1,0 @@
-# NIFTY50 raw data downloaded successfully\n\n# Next steps: implement moving average crossover strategy\n

@@ -1,12 +1,26 @@
 import yfinance as yf
-def moving_average_crossover(df):
-    # Calculate 50-day and 200-day SMA
-    df['SMA_50'] = df['Close'].rolling(window=50).mean()
-    df['SMA_200'] = df['Close'].rolling(window=200).mean()
+import pandas as pd
+import evaluate as evaluate
+from datetime import date
+import yfinance as yf
+import pandas as pd
+csv_path = 'results/data/NIFTY50_raw.csv'
+raw_data = pd.read_csv(csv_path)
 
-    # Create a new column for the crossover signal
-    df['Signal'] = 0.0
-    df.loc[(df['SMA_50'] > df['SMA_200']), 'Signal'] = 1
-    df.loc[(df['SMA_50'] < df['SMA_200']), 'Signal'] = -1
+# Implement Moving Average Crossover strategy
+nifty50_ma_crossover = evaluate.ma_crossover(raw_data)
 
-    return df
+# Implement RSI-based strategy
+nifty50_rsi = evaluate.rsi_strategy(raw_data)
+
+# Implement Bollinger Bands mean-reversion strategy
+nifty50_bollinger = evaluate.bollinger_bands_strategy(raw_data)
+
+# Implement Mean Reversion strategy
+nifty50_mean_reversion = evaluate.mean_reversion_strategy(raw_data)
+
+# Save results to csv
+nifty50_ma_crossover.to_csv("results/backtest_results_ma_crossover.csv")
+nifty50_rsi.to_csv("results/backtest_results_rsi.csv")
+nifty50_bollinger.to_csv("results/backtest_results_bollinger.csv")
+nifty50_mean_reversion.to_csv("results/backtest_results_mean_reversion.csv")

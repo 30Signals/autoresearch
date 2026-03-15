@@ -448,7 +448,15 @@ def main():
                         help="Override max rounds from config")
     parser.add_argument("--max-tool-calls", type=int, default=None,
                         help="Override max tool calls per round from config")
+    parser.add_argument("--experiment", default=None, metavar="DIR",
+                        help="Path to experiment folder (contains program.md). Created if missing.")
     args = parser.parse_args()
+
+    if args.experiment:
+        exp_path = Path(args.experiment).resolve()
+        exp_path.mkdir(parents=True, exist_ok=True)
+        os.chdir(exp_path)
+        print(f"[harness] Experiment dir: {exp_path}")
 
     if args.dry_run:
         print("=== DRY RUN ===\n")

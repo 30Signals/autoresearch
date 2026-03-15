@@ -11,7 +11,9 @@ Config path resolution (in order):
 """
 
 import json
+import re
 import time
+import uuid
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -168,7 +170,80 @@ class LLMRouter:
 
         return model_str, kwargs
 
-    def _call_with_retry(self, build_kwargs_fn) -> object:
+    def _parse_xml_tool_calls(self, error_str: str, tools: list) -> object | None:
+        """
+        Some models (Kimi K2, older Qwen) emit XML-format tool calls instead of JSON:
+            <function=read_file>journal.md</function>
+        Groq rejects these with tool_use_failed before returning a response.
+        This method extracts the failed_generation, parses the XML, and returns
+        a synthetic response object that the harness can process normally.
+        """
+        # Extract failed_generation JSON blob from error string
+        failed_gen = ""
+        json_match = re.search(r'\{.*\}', error_str, re.DOTALL)
+        if json_match:
+            try:
+                err_data = json.loads(json_match.group())
+                failed_gen = err_data.get("error", {}).get("failed_generation", "")
+            except (json.JSONDecodeError, AttributeError):
+                pass
+
+        if not failed_gen:
+            return None
+
+        # Parse <function=name>content</function> patterns
+        calls = re.findall(r'<function=(\w+)>(.*?)</function>', failed_gen, re.DOTALL)
+        if not calls:
+            return None
+
+        # Build map of tool_name → first required param (for plain-string args)
+        first_param: dict[str, str | None] = {}
+        for t in tools:
+            fn = t["function"]
+            req = fn["parameters"].get("required", [])
+            first_param[fn["name"]] = req[0] if req else None
+
+        # Build synthetic tool call objects
+        class _Fn:
+            def __init__(self, name, arguments):
+                self.name = name
+                self.arguments = arguments
+
+        class _TC:
+            def __init__(self, name, arguments):
+                self.id = f"call_{uuid.uuid4().hex[:8]}"
+                self.type = "function"
+                self.function = _Fn(name, arguments)
+
+        class _Msg:
+            def __init__(self, tool_calls):
+                self.content = ""
+                self.tool_calls = tool_calls
+
+        class _Choice:
+            def __init__(self, message):
+                self.message = message
+
+        class _Response:
+            def __init__(self, choices):
+                self.choices = choices
+
+        tool_calls = []
+        for name, content in calls:
+            content = content.strip()
+            # Try to parse content as JSON args dict first
+            try:
+                args = json.loads(content)
+            except json.JSONDecodeError:
+                # Plain string — map to first required param
+                param = first_param.get(name)
+                args = {param: content} if param else {}
+            tool_calls.append(_TC(name, json.dumps(args)))
+
+        print(f"  [router] Parsed {len(tool_calls)} XML tool call(s): {[tc.function.name for tc in tool_calls]}")
+        return _Response([_Choice(_Msg(tool_calls))])
+
+    def _call_with_retry(self, build_kwargs_fn, tools=None) -> object:
         """
         Core retry loop. build_kwargs_fn(slot) → (model_str, call_kwargs).
         Raises BadRequestError / ContextWindowExceededError to caller.
@@ -208,7 +283,11 @@ class LLMRouter:
                     # Model gone — disable permanently
                     self._disable_slot(slot, f"Model decommissioned: {e}")
                 elif "tool_use_failed" in err_str or "failed_generation" in err_str:
-                    # Model produced malformed tool call — transient, cooldown and rotate
+                    # Model emitted XML tool calls instead of JSON — try to parse and recover
+                    if tools:
+                        synthetic = self._parse_xml_tool_calls(str(e), tools)
+                        if synthetic:
+                            return synthetic
                     print(f"  [router] Tool generation failed on {slot['name']} — cooldown 15s, rotating")
                     self._set_cooldown(slot, 15)
                 else:
@@ -234,7 +313,7 @@ class LLMRouter:
             kwargs["max_tokens"] = max_tokens
             return model_str, kwargs
 
-        return self._call_with_retry(build_kwargs)
+        return self._call_with_retry(build_kwargs, tools=tools)
 
     def chat(self, messages: list, max_tokens=4096) -> object:
         """

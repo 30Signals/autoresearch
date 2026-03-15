@@ -1,1 +1,2 @@
-## Round 1: Read program.md, created evals/criteria.md with measurable success criteria
+NIFTY50 raw data downloaded successfully
+

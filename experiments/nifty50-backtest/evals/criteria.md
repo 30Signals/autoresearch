@@ -1,0 +1,10 @@
+- [ ] Download 5+ years of NIFTY50 historical data
+- [ ] Implement Moving Average Crossover strategy
+- [ ] Implement RSI-based strategy
+- [ ] Implement Bollinger Bands mean-reversion strategy
+- [ ] Implement one additional strategy of choice
+- [ ] Compute Sharpe Ratio, Maximum Drawdown, CAGR, and Win Rate for each strategy
+- [ ] Compare each strategy to Buy-and-Hold baseline
+- [ ] Identify best-performing strategy and explain why it works
+- [ ] Save results to results/data/NIFTY50_raw.csv, results/backtest_results.csv, and results/plots/
+- [ ] Write summary report to results/report.md

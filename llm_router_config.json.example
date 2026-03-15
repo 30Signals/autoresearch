@@ -1,0 +1,40 @@
+{
+  "providers": [
+    {
+      "name": "openrouter-1",
+      "type": "openrouter",
+      "api_key": "sk-or-YOUR_KEY_HERE",
+      "models": [
+        "deepseek/deepseek-chat",
+        "qwen/qwen-2.5-coder-32b-instruct"
+      ]
+    },
+    {
+      "name": "openrouter-2",
+      "type": "openrouter",
+      "api_key": "sk-or-YOUR_SECOND_KEY_HERE",
+      "models": [
+        "deepseek/deepseek-chat"
+      ]
+    },
+    {
+      "name": "gemini",
+      "type": "google",
+      "api_key": "AIzaYOUR_GEMINI_KEY_HERE",
+      "models": [
+        "gemini/gemini-2.0-flash-exp"
+      ]
+    },
+    {
+      "name": "groq",
+      "type": "groq",
+      "api_key": "gsk_YOUR_GROQ_KEY_HERE",
+      "models": [
+        "groq/llama-3.3-70b-versatile"
+      ]
+    }
+  ],
+  "rotation": "round_robin",
+  "max_rounds": 20,
+  "max_tool_calls_per_round": 50
+}

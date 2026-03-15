@@ -1,18 +1,31 @@
-# Research Program
+# Research Goal: NIFTY50 Trading Strategy Backtest
 
-## Goal
+## Objective
+Research and backtest multiple trading strategies on NIFTY50 (^NSEI) using 5+ years
+of historical data. Identify the best-performing strategy and explain why it works.
+Find new strategies basis example strategies shown below.
 
-<!-- Describe your research goal here. Be as vague or specific as you like.
-     The autoresearcher will clarify, research, and develop evals automatically. -->
+## Example Strategies
+1. Moving Average Crossover (50-day / 200-day SMA)
+2. RSI-based (buy oversold <30, sell overbought >70)
+3. Bollinger Bands mean-reversion
+4. One additional strategy of your choice
 
-I want to build a system that can answer complex multi-hop questions by retrieving
-and synthesizing information from multiple sources. It should handle ambiguous
-questions gracefully and cite its sources.
+## Required Metrics (per strategy)
+- Sharpe Ratio (annualized, risk-free rate = 6% for India)
+- Maximum Drawdown (%)
+- CAGR (%)
+- Win Rate (%)
+- Comparison to Buy-and-Hold baseline
 
-## Constraints
+## Deliverables
+- results/data/NIFTY50_raw.csv
+- results/backtest_results.csv
+- results/plots/ — equity curves
+- results/report.md — written summary with conclusion
 
-<!-- Optional: add any constraints, preferences, or context -->
+## Data
+Use: yf.download("^NSEI", period="5y", interval="1d")
 
-- Should work on general knowledge domains
-- Latency matters; prefer fewer, targeted retrievals over exhaustive search
-- Output should be concise but thorough
+## Success Condition
+All strategies implemented, all metrics computed, best strategy identified with explanation.

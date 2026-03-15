@@ -1,0 +1,12 @@
+.env
+*_config.json
+!llm_router_config.json.example
+__pycache__/
+*.pyc
+.DS_Store
+results/data/
+*.pkl
+*.csv
+!results/backtest_results.csv
+venv
+.venv

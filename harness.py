@@ -452,6 +452,14 @@ def main():
                         help="Path to experiment folder (contains program.md). Created if missing.")
     args = parser.parse_args()
 
+    # Resolve config path before any chdir, so relative paths still work
+    config_path = args.config
+    if not config_path:
+        for candidate in [Path.home() / ".llm_router_config.json", Path("llm_router_config.json")]:
+            if candidate.exists():
+                config_path = str(candidate.resolve())
+                break
+
     if args.experiment:
         exp_path = Path(args.experiment).resolve()
         exp_path.mkdir(parents=True, exist_ok=True)
@@ -469,7 +477,7 @@ def main():
         return
 
     run_research(
-        config_path=args.config,
+        config_path=config_path,
         max_rounds=args.max_rounds,
         max_tool_calls_per_round=args.max_tool_calls,
     )

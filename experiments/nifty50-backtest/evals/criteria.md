@@ -1,9 +1,1 @@
-- [ ] results/data/NIFTY50_raw.csv exists with 5+ years of data
-- [ ] MA Crossover (50/200 SMA): Sharpe, MaxDD, CAGR, WinRate computed
-- [ ] RSI strategy (<30 buy, >70 sell): Sharpe, MaxDD, CAGR, WinRate computed
-- [ ] Bollinger Bands strategy: Sharpe, MaxDD, CAGR, WinRate computed
-- [ ] 4th strategy of agent's choice: Sharpe, MaxDD, CAGR, WinRate computed
-- [ ] Buy-and-hold baseline computed and compared
-- [ ] results/backtest_results.csv with all strategies and metrics
-- [ ] results/plots/ with equity curves for each strategy
-- [ ] results/report.md with written summary and best strategy explanation
+## results/data/NIFTY50_raw.csv exists with 5+ years of data

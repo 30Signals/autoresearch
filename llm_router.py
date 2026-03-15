@@ -52,6 +52,7 @@ class LLMRouter:
         self._slot_index = 0
         self._cooldown_until: dict[str, datetime] = {}
         self._disabled: set[str] = set()
+        self._failure_count: dict[str, int] = {}  # for exponential backoff
 
         if not self._slots:
             raise ValueError("No provider slots found in config. Check your llm_router_config.json.")
@@ -138,10 +139,15 @@ class LLMRouter:
             print(f"  [router] All slots cooling down. Waiting {wait_secs:.1f}s...")
             time.sleep(max(0.5, wait_secs))
 
-    def _set_cooldown(self, slot: dict, seconds: int):
+    def _set_cooldown(self, slot: dict, base_seconds: int, max_seconds: int = 600):
+        """Set exponential backoff cooldown: base * 2^failures, capped at max_seconds."""
         key = self._slot_key(slot)
+        failures = self._failure_count.get(key, 0)
+        seconds = min(base_seconds * (2 ** failures), max_seconds)
+        self._failure_count[key] = failures + 1
         self._cooldown_until[key] = datetime.now() + timedelta(seconds=seconds)
-        logger.warning(f"Slot {key} on cooldown for {seconds}s")
+        logger.warning(f"Slot {key} on cooldown for {seconds}s (failure #{failures + 1})")
+        print(f"    cooldown {seconds}s (attempt #{failures + 1})")
 
     def _disable_slot(self, slot: dict, reason: str):
         key = self._slot_key(slot)
@@ -246,30 +252,31 @@ class LLMRouter:
 
     def _call_with_retry(self, build_kwargs_fn, tools=None) -> object:
         """
-        Core retry loop. build_kwargs_fn(slot) → (model_str, call_kwargs).
-        Raises BadRequestError / ContextWindowExceededError to caller.
+        Core retry loop with exponential backoff per slot.
+        Exits only when: a call succeeds, a fatal error is raised, or all slots are permanently disabled.
         """
-        max_attempts = len(self._slots) * 3 + 5
-        for attempt in range(max_attempts):
-            slot = self._wait_for_slot()
+        while True:
+            slot = self._wait_for_slot()  # raises if all slots permanently disabled
             model_str, kwargs = build_kwargs_fn(slot)
 
             try:
                 logger.debug(f"Calling {model_str} (slot: {slot['name']})")
                 response = litellm.completion(model=model_str, **kwargs)
+                # Success — reset failure count for this slot
+                self._failure_count.pop(self._slot_key(slot), None)
                 return response
 
-            except RateLimitError as e:
-                print(f"  [router] Rate limit on {slot['name']} — cooldown 60s")
-                self._set_cooldown(slot, 60)
+            except RateLimitError:
+                print(f"  [router] Rate limit on {slot['name']}", end="")
+                self._set_cooldown(slot, base_seconds=60, max_seconds=600)
 
-            except ServiceUnavailableError as e:
-                print(f"  [router] Service unavailable on {slot['name']} — cooldown 30s")
-                self._set_cooldown(slot, 30)
+            except ServiceUnavailableError:
+                print(f"  [router] Service unavailable on {slot['name']}", end="")
+                self._set_cooldown(slot, base_seconds=30, max_seconds=300)
 
-            except APIConnectionError as e:
-                print(f"  [router] Connection error on {slot['name']} — cooldown 10s")
-                self._set_cooldown(slot, 10)
+            except APIConnectionError:
+                print(f"  [router] Connection error on {slot['name']}", end="")
+                self._set_cooldown(slot, base_seconds=10, max_seconds=120)
 
             except AuthenticationError as e:
                 self._disable_slot(slot, f"AuthenticationError: {e}")
@@ -281,36 +288,29 @@ class LLMRouter:
                 elif "no endpoints" in err_str:
                     self._disable_slot(slot, f"No endpoints available: {e}")
                 else:
-                    # Model temporarily missing — long cooldown
-                    print(f"  [router] Not found on {slot['name']} — cooldown 120s")
-                    self._set_cooldown(slot, 120)
+                    print(f"  [router] Not found on {slot['name']}", end="")
+                    self._set_cooldown(slot, base_seconds=60, max_seconds=600)
 
             except ContextWindowExceededError:
-                # Propagate — harness handles trimming
-                raise
+                raise  # propagate — harness handles trimming
 
             except BadRequestError as e:
                 err_str = str(e).lower()
                 if any(kw in err_str for kw in ("decommissioned", "not supported", "deprecated", "no longer")):
-                    # Model gone — disable permanently
                     self._disable_slot(slot, f"Model decommissioned: {e}")
                 elif "tool_use_failed" in err_str or "failed_generation" in err_str:
-                    # Model emitted XML tool calls instead of JSON — try to parse and recover
                     if tools:
                         synthetic = self._parse_xml_tool_calls(str(e), tools)
                         if synthetic:
                             return synthetic
-                    print(f"  [router] Tool generation failed on {slot['name']} — cooldown 15s, rotating")
-                    self._set_cooldown(slot, 15)
+                    print(f"  [router] Tool generation failed on {slot['name']}", end="")
+                    self._set_cooldown(slot, base_seconds=15, max_seconds=120)
                 else:
-                    # Truly bad request (invalid params etc.) — propagate
-                    raise
+                    raise  # truly bad request — propagate
 
             except Exception as e:
-                print(f"  [router] Unexpected error on {slot['name']}: {type(e).__name__}: {e} — cooldown 10s")
-                self._set_cooldown(slot, 10)
-
-        raise RuntimeError(f"All retry attempts exhausted after {max_attempts} tries.")
+                print(f"  [router] Unexpected error on {slot['name']}: {type(e).__name__}: {e}", end="")
+                self._set_cooldown(slot, base_seconds=10, max_seconds=120)
 
     def chat_with_tools(self, messages: list, tools: list, tool_choice="auto", max_tokens=4096) -> object:
         """

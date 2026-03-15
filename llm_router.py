@@ -204,11 +204,15 @@ class LLMRouter:
 
             except BadRequestError as e:
                 err_str = str(e).lower()
-                # Decommissioned / unsupported models should disable the slot permanently
                 if any(kw in err_str for kw in ("decommissioned", "not supported", "deprecated", "no longer")):
+                    # Model gone — disable permanently
                     self._disable_slot(slot, f"Model decommissioned: {e}")
+                elif "tool_use_failed" in err_str or "failed_generation" in err_str:
+                    # Model produced malformed tool call — transient, cooldown and rotate
+                    print(f"  [router] Tool generation failed on {slot['name']} — cooldown 15s, rotating")
+                    self._set_cooldown(slot, 15)
                 else:
-                    # Other bad requests (e.g. invalid params) — propagate
+                    # Truly bad request (invalid params etc.) — propagate
                     raise
 
             except Exception as e:

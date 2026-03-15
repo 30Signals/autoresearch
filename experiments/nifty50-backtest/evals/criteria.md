@@ -1,4 +1,4 @@
-## SUCCESS CRITERIA
+# SUCCESS CRITERIA
 ## Strategies Implemented
 - Moving Average Crossover (50-day / 200-day SMA)
 - RSI-based (buy oversold <30, sell overbought >70)

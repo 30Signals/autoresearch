@@ -1,3 +1,4 @@
+## SUCCESS CRITERIA
 ## Strategies Implemented
 - Moving Average Crossover (50-day / 200-day SMA)
 - RSI-based (buy oversold <30, sell overbought >70)
@@ -8,7 +9,6 @@
 - Backtest results saved in results/backtest_results.csv
 ## Report
 - Written summary with conclusion saved in results/report.md
-
 ## Metrics Computed
 - Sharpe Ratio (annualized, risk-free rate = 6% for India)
 - Maximum Drawdown (%)

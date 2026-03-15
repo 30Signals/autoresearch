@@ -1,1 +1,1 @@
-Success criteria defined and written to evals/criteria.md. Ready to start backtesting strategies.
+Success criteria defined and written to evals/criteria.md. Ready to start backtesting strategies. Moving Average Crossover strategy implemented and written to evaluate.py. Started backtesting using python script.

@@ -1,1 +1,13 @@
-## results/data/NIFTY50_raw.csv exists with 5+ years of data
+- [x] results/data/NIFTY50_raw.csv exists with 5+ years of data
+- [ ] Implement Moving Average Crossover strategy
+- [ ] Implement RSI-based strategy
+- [ ] Implement Bollinger Bands strategy
+- [ ] Implement additional strategy (MACD crossover)
+- [ ] Compute Sharpe Ratio for all strategies
+- [ ] Compute Maximum Drawdown for all strategies
+- [ ] Compute CAGR for all strategies
+- [ ] Compute Win Rate for all strategies
+- [ ] Compare strategies to Buy-and-Hold baseline
+- [ ] Generate results/backtest_results.csv
+- [ ] Generate results/plots/ — equity curves
+- [ ] Write results/report.md — summary with conclusion

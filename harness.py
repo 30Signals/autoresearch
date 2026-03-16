@@ -17,6 +17,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from litellm.exceptions import ContextWindowExceededError
@@ -369,6 +370,14 @@ def make_tool_result_message(tool_call_id: str, result: str) -> dict:
 # Main research loop
 # ---------------------------------------------------------------------------
 
+def git_push():
+    result = subprocess.run(["git", "push"], capture_output=True, text=True)
+    if result.returncode == 0:
+        print("  [harness] git push OK")
+    else:
+        print(f"  [harness] git push failed: {result.stderr.strip()}")
+
+
 def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=None):
     if not Path("program.md").exists():
         print("ERROR: program.md not found. Create it first.")
@@ -381,8 +390,14 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
     cfg = router._config
     effective_max_rounds = max_rounds or cfg.get("max_rounds", 20)
     effective_max_tools = max_tool_calls_per_round or cfg.get("max_tool_calls_per_round", 50)
+    push_every_n_commits = cfg.get("push_every_n_commits", 3)
+    push_every_minutes = cfg.get("push_every_minutes", 10)
+
+    commits_since_push = 0
+    last_push_time = time.time()
 
     print(f"Starting research: max_rounds={effective_max_rounds}, max_tool_calls={effective_max_tools}")
+    print(f"Auto-push: every {push_every_n_commits} commits or {push_every_minutes} min")
 
     for round_num in range(effective_max_rounds):
         print(f"\n{'='*60}")
@@ -434,6 +449,12 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
 
                 if tc["name"] == "git_commit":
                     round_done = True
+                    commits_since_push += 1
+                    elapsed_min = (time.time() - last_push_time) / 60
+                    if commits_since_push >= push_every_n_commits or elapsed_min >= push_every_minutes:
+                        git_push()
+                        commits_since_push = 0
+                        last_push_time = time.time()
                 if tc["name"] == "done" and result.startswith("ACCEPTED"):
                     research_done = True
 
@@ -441,13 +462,14 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
                 break
 
         if research_done:
-            print("\n[harness] Research complete! Auto-committing any remaining changes...")
+            print("\n[harness] Research complete! Auto-committing and pushing...")
             subprocess.run(["git", "add", "-A"])
             subprocess.run([
                 "git", "commit",
                 "--author=autoresearch <agent@autoresearch.local>",
                 "-m", "auto-commit: research complete", "--allow-empty"
             ])
+            git_push()
             print("[harness] Done.")
             return
 

@@ -1,4 +1,17 @@
 # Research Journal - BLS International Services Ltd
+
+## Round 1
+- Started program.md and read requirements.
+- Created evals/criteria.md for tracking progress. - [ ] results/data/raw_sources.json contains collected references and sources for BLS International Services Ltd (at least 3 distinct sources).
+- [ ] results/data/extracted_data.json contains structured extracted insights including KPIs, financials, and operational data.
+- [ ] results/analysis/company_summary.json contains a normalized company profile.
+- [ ] results/report.md contains a structured investment memo with required sections: Business Model Summary, Key Financial Metrics, Competitive Landscape Mapping, Unit Economics (if available), Identified Growth Drivers, Identified Risks, Bull Case, Bear Case, Final Balanced Verdict.
+- [ ] The report includes a Business Overview of BLS International Services Ltd.
+- [ ] The report includes a Financial Analysis with revenue, growth rates, and margins.
+- [ ] The report includes Industry & Competition analysis.
+- [ ] The report includes Growth Drivers and Risks.
+- [ ] Research includes information from at least 3 distinct sources (e.g., filings, news, transcripts).
+
 ## Round 2
 - Completed search for information using available tools.
 - Identified business model, financial performance, and market position.

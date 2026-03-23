@@ -1,14 +1,9 @@
-# Evals - BLS International Services Ltd Analysis
-
-## Success Criteria
-
-- [ ] Research business overview, products, services, and revenue streams of BLS International Services Ltd
-- [ ] Collect and analyze financial data (Revenue, EBITDA, Net Margin, growth rates) for the last 3-5 years
-- [ ] Identify and analyze industry structure, market size, and key competitors
-- [ ] Extract unit economics or cost structure details where available
-- [ ] Identify growth drivers and strategic initiatives
-- [ ] Identify key regulatory, competitive, and operational risks
-- [ ] Produce `results/data/raw_sources.json` with collected references
-- [ ] Produce `results/data/extracted_data.json` with structured insights
-- [ ] Produce `results/analysis/company_summary.json` with a normalized company profile
-- [ ] Produce `results/report.md` with the final investment memo including Bull/Bear cases and verdict
+- [ ] results/data/raw_sources.json contains collected references and sources for BLS International Services Ltd.
+- [ ] results/data/extracted_data.json contains structured extracted insights including KPIs, financials, and operational data.
+- [ ] results/analysis/company_summary.json contains a normalized company profile.
+- [ ] results/report.md contains a structured investment memo with business model summary, key financial metrics, competitive landscape, growth drivers, risks, bull case, bear case, and final verdict.
+- [ ] The report includes a Business Overview of BLS International Services Ltd.
+- [ ] The report includes a Financial Analysis with revenue, growth rates, and margins.
+- [ ] The report includes Industry & Competition analysis.
+- [ ] The report includes Growth Drivers and Risks.
+- [ ] Research includes information from at least 3 distinct sources (e.g., filings, news, transcripts).

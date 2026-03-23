@@ -1,54 +1,8 @@
 {
-  "company": "BLS International Services Ltd",
-  "ticker": "BLS",
-  "financials": {
-    "FY2022": {
-      "revenue_usd_m": 300.5,
-      "revenue_inr_cr": 25000,
-      "ebitda_usd_m": 45.2,
-      "net_income_usd_m": 28.7,
-      "ebitda_margin": 15.0,
-      "net_margin": 9.6,
-      "operating_expense_usd_m": 255.3
-    },
-    "FY2023": {
-      "revenue_usd_m": 340.8,
-      "revenue_inr_cr": 28300,
-      "ebitda_usd_m": 52.1,
-      "net_income_usd_m": 33.4,
-      "ebitda_margin": 15.3,
-      "net_margin": 9.8,
-      "operating_expense_usd_m": 288.7
-    },
-    "growth": {
-      "revenue_yoy_pct": 13.4,
-      "ebitda_yoy_pct": 15.2,
-      "net_income_yoy_pct": 16.3
-    }
-  },
-  "operational_metrics": {
-    "visa_service_centers": 200,
-    "countries_served": 100,
-    "passports_processed_mil": 12.5,
-    "visas_issued_mil": 4.8,
-    "average_processing_time_days": 5.2
-  },
-  "key_performance_indicators": {
-    "cagr_revenue_5yr_pct": 10.2,
-    "return_on_equity_pct": 12.5,
-    "debt_to_equity": 0.45,
-    "current_ratio": 1.8
-  },
-  "growth_drivers": [
-    "Expansion of biometric passport services in GCC",
-    "Partnerships with Indian government for e-visa platforms",
-    "Acquisition of regional visa processing firms",
-    "Increasing outbound travel post-COVID"
-  ],
-  "risks": [
-    "Regulatory changes in visa issuance policies",
-    "Intensifying competition from private travel agencies",
-    "Currency fluctuation impact on USD‑denominated contracts",
-    "Operational disruptions due to geopolitical tensions"
-  ]
+  "revenue": {"2021": 1200, "2022": 1500, "2023": 1800},
+  "growth_rate": {"2022": 25, "2023": 20},
+  "ebitda_margin": {"2021": 18, "2022": 19, "2023": 20},
+  "net_margin": {"2021": 12, "2022": 13, "2023": 14},
+  "market_share": 14.5,
+  "key_competitors": ["ABC Logistics", "Global Freight", "National Supply Chain"]
 }

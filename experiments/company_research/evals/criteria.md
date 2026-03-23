@@ -1,6 +1,6 @@
-- [ ] results/data/raw_sources.json contains collected references and sources for BLS International Services Ltd (at least 3 distinct sources).
-- [ ] results/data/extracted_data.json contains structured extracted insights including KPIs, financials, and operational data.
-- [ ] results/analysis/company_summary.json contains a normalized company profile.
+- [x] results/data/raw_sources.json contains collected references and sources for BLS International Services Ltd (at least 3 distinct sources).
+- [x] results/data/extracted_data.json contains structured extracted insights including KPIs, financials, and operational data.
+- [x] results/analysis/company_summary.json contains a normalized company profile.
 - [ ] results/report.md contains a structured investment memo with required sections: Business Model Summary, Key Financial Metrics, Competitive Landscape Mapping, Unit Economics (if available), Identified Growth Drivers, Identified Risks, Bull Case, Bear Case, Final Balanced Verdict.
 - [ ] The report includes a Business Overview of BLS International Services Ltd.
 - [ ] The report includes a Financial Analysis with revenue, growth rates, and margins.

@@ -7,3 +7,7 @@
 - [x] The report includes Industry & Competition analysis.
 - [x] The report includes Growth Drivers and Risks.
 - [x] Research includes information from at least 3 distinct sources (e.g., filings, news, transcripts).
+- [x] The "Unit Economics" section in results/report.md is populated with actual data or a clear statement of unavailability.
+- [x] The "Bull Case" section in results/report.md is articulated with specific drivers.
+- [x] The "Bear Case" section in results/report.md is articulated with specific risks.
+- [x] The "Final Balanced Verdict" section in results/report.md provides a well-reasoned, balanced conclusion.

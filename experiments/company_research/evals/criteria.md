@@ -1,4 +1,3 @@
-\
 - [ ] results/data/raw_sources.json contains collected references and sources for BLS International Services Ltd (at least 3 distinct sources).
 - [ ] results/data/extracted_data.json contains structured extracted insights including KPIs, financials, and operational data.
 - [ ] results/analysis/company_summary.json contains a normalized company profile.

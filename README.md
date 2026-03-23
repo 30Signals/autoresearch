@@ -88,6 +88,10 @@ git log --oneline                                  # commits after each round
 
 Config is loaded from (in order): explicit path → `~/.llm_router_config.json` → `./llm_router_config.json`
 
+## Inspiration
+
+Inspired by [Andrej Karpathy's autoresearch loop](https://github.com/karpathy/autoresearch/).
+
 ## License
 
 MIT

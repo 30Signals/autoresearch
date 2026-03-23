@@ -40,7 +40,10 @@ Rules:
 - After completing each criterion, update evals/criteria.md: change "- [ ]" to "- [x]"
 - Append findings to journal.md every round (read first, then write full content)
 - Call git_commit("msg") when you've made meaningful progress — this ends the round
-- Call done("summary") only when you believe ALL criteria are checked off.
+- Before calling done(), you MUST run a verification pass in the same round:
+    1. Re-read evals/criteria.md and list every checked criterion
+    2. For each criterion, re-run or re-check the actual output (bash, read_file) to confirm it is real
+    3. Only call done() after you have verified every criterion with fresh evidence — not from memory
   done() will be REJECTED and return the list of remaining unchecked criteria if any exist.
   Fix them before calling done() again.
 - Never ask for confirmation — make decisions and execute
@@ -225,41 +228,107 @@ def tool_git_commit(message: str) -> str:
         return f"ERROR: {e}"
 
 
-def tool_done(summary: str) -> str:
-    # Gate: check evals/criteria.md for unchecked items before accepting done()
-    criteria_path = Path("evals/criteria.md")
-    if criteria_path.exists():
-        lines = criteria_path.read_text(encoding="utf-8").splitlines()
-        unchecked = [l.strip() for l in lines if l.strip().startswith("- [ ]")]
-        if unchecked:
-            items = "\n".join(f"  {u}" for u in unchecked)
+def make_tool_done(router):
+    def tool_done(summary: str) -> str:
+        # Gate 1: check evals/criteria.md for unchecked items
+        criteria_path = Path("evals/criteria.md")
+        if criteria_path.exists():
+            lines = criteria_path.read_text(encoding="utf-8").splitlines()
+            unchecked = [l.strip() for l in lines if l.strip().startswith("- [ ]")]
+            if unchecked:
+                items = "\n".join(f"  {u}" for u in unchecked)
+                return (
+                    f"REJECTED — {len(unchecked)} criterion/criteria not yet completed:\n{items}\n\n"
+                    "Complete these, update evals/criteria.md (change '- [ ]' to '- [x]'), then call done() again."
+                )
+
+        # Gate 2: results/ must have output files
+        results_dir = Path("results")
+        results_dir.mkdir(exist_ok=True)
+        result_files = [f for f in results_dir.rglob("*") if f.is_file() and f.name != "SUMMARY.md"]
+        if not result_files:
             return (
-                f"REJECTED — {len(unchecked)} criterion/criteria not yet completed:\n{items}\n\n"
-                "Complete these, update evals/criteria.md (change '- [ ]' to '- [x]'), then call done() again."
+                "REJECTED — results/ directory is empty. "
+                "You must produce at least one output file (CSV, plot, report) before calling done()."
             )
 
-    results_dir = Path("results")
-    results_dir.mkdir(exist_ok=True)
-    summary_path = results_dir / "SUMMARY.md"
-    summary_path.write_text(f"# Research Summary\n\n{summary}\n", encoding="utf-8")
-    return "ACCEPTED — Research complete. Summary saved to results/SUMMARY.md"
+        # Gate 3: LLM judge — verify each criterion against actual outputs
+        try:
+            criteria_text = criteria_path.read_text(encoding="utf-8") if criteria_path.exists() else "(no criteria file)"
+            results_contents = {}
+            for f in result_files:
+                try:
+                    text = f.read_text(encoding="utf-8")
+                    results_contents[str(f)] = text[:3000] + ("...[truncated]" if len(text) > 3000 else "")
+                except Exception:
+                    results_contents[str(f)] = "(binary or unreadable file)"
+
+            results_block = "\n\n".join(
+                f"--- {path} ---\n{content}" for path, content in results_contents.items()
+            )[:8000]
+
+            judge_prompt = f"""\
+You are a strict research verifier. Your job is to check whether each success criterion has actually been satisfied by the outputs produced.
+
+## Success Criteria (from evals/criteria.md)
+{criteria_text}
+
+## Result Files Produced
+{results_block}
+
+For every criterion marked [x], respond with exactly one line:
+PASS: <criterion text> — <specific evidence from the result files>
+FAIL: <criterion text> — <what is missing, wrong, or unverifiable>
+
+Be strict. If the evidence is absent, vague, or the file is empty/malformed, mark FAIL.
+Do not output anything other than PASS:/FAIL: lines."""
+
+            print("  [harness] Running judge verification...")
+            response = router.chat(
+                [{"role": "user", "content": judge_prompt}],
+                max_tokens=2000,
+            )
+            verdict = response.choices[0].message.content or ""
+            failures = [l.strip() for l in verdict.splitlines() if l.strip().startswith("FAIL:")]
+            passes = [l.strip() for l in verdict.splitlines() if l.strip().startswith("PASS:")]
+            print(f"  [harness] Judge: {len(passes)} pass, {len(failures)} fail")
+
+            if failures:
+                failure_list = "\n".join(f"  {f}" for f in failures)
+                return (
+                    f"REJECTED — Judge verification failed on {len(failures)} criterion/criteria:\n"
+                    f"{failure_list}\n\n"
+                    "Fix these issues, then call done() again."
+                )
+
+        except Exception as e:
+            print(f"  [harness] Judge error (failing open): {e}")
+            # Fail open — don't block completion if judge itself errors
+
+        summary_path = results_dir / "SUMMARY.md"
+        summary_path.write_text(f"# Research Summary\n\n{summary}\n", encoding="utf-8")
+        return "ACCEPTED — Research complete. Summary saved to results/SUMMARY.md"
+
+    return tool_done
 
 
 # ---------------------------------------------------------------------------
 # Tool dispatch
 # ---------------------------------------------------------------------------
-TOOL_DISPATCH = {
-    "bash": tool_bash,
-    "write_file": tool_write_file,
-    "read_file": tool_read_file,
-    "list_files": tool_list_files,
-    "git_commit": tool_git_commit,
-    "done": tool_done,
-}
+
+def build_tool_dispatch(router) -> dict:
+    return {
+        "bash": tool_bash,
+        "write_file": tool_write_file,
+        "read_file": tool_read_file,
+        "list_files": tool_list_files,
+        "git_commit": tool_git_commit,
+        "done": make_tool_done(router),
+    }
 
 
-def execute_tool(name: str, args: dict) -> str:
-    fn = TOOL_DISPATCH.get(name)
+def execute_tool(name: str, args: dict, dispatch: dict) -> str:
+    fn = dispatch.get(name)
     if not fn:
         return f"ERROR: Unknown tool: {name}"
     try:
@@ -388,6 +457,7 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
 
     ensure_git_configured()
     router = LLMRouter(config_path=config_path)
+    dispatch = build_tool_dispatch(router)
 
     # Load limits from config or use defaults
     cfg = router._config
@@ -446,7 +516,7 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
                 nudge_count = 0  # reset on successful tool call
 
                 for tc in tool_calls:
-                    result = execute_tool(tc["name"], tc["args"])
+                    result = execute_tool(tc["name"], tc["args"], dispatch)
                     preview = result[:120].replace("\n", " ")
                     print(f"  [{tc['name']}] → {preview}")
                     messages.append(make_tool_result_message(tc["id"], result))

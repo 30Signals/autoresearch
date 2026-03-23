@@ -323,6 +323,9 @@ def ensure_git_configured():
 # ---------------------------------------------------------------------------
 
 def process_response(response) -> tuple[list, dict]:
+    if not response.choices:
+        print("  [harness] Empty choices in response — skipping")
+        return [], {"role": "assistant", "content": ""}
     msg = response.choices[0].message
 
     # Guard: some models return empty list on finish_reason="tool_calls"
@@ -390,8 +393,8 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
     cfg = router._config
     effective_max_rounds = max_rounds or cfg.get("max_rounds", 20)
     effective_max_tools = max_tool_calls_per_round or cfg.get("max_tool_calls_per_round", 50)
-    push_every_n_commits = cfg.get("push_every_n_commits", 3)
-    push_every_minutes = cfg.get("push_every_minutes", 10)
+    push_every_n_commits = cfg.get("push_every_n_commits", 5)
+    push_every_minutes = cfg.get("push_every_minutes", 15)
 
     commits_since_push = 0
     last_push_time = time.time()
@@ -416,47 +419,52 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
 
         for tool_call_num in range(effective_max_tools):
             try:
-                response = router.chat_with_tools(messages, TOOLS)
-            except ContextWindowExceededError:
-                print("  [harness] Context window exceeded — trimming messages...")
-                messages = messages[:1] + messages[-5:]
+                try:
+                    response = router.chat_with_tools(messages, TOOLS)
+                except ContextWindowExceededError:
+                    print("  [harness] Context window exceeded — trimming messages...")
+                    messages = messages[:1] + messages[-5:]
+                    continue
+
+                tool_calls, asst_msg = process_response(response)
+                messages.append(asst_msg)
+
+                if not tool_calls:
+                    nudge_count += 1
+                    if nudge_count >= 2:
+                        print("  [harness] No tool calls after nudge — ending round")
+                        break
+                    messages.append({
+                        "role": "user",
+                        "content": (
+                            "You generated text but called no tools. "
+                            "Call git_commit() to end this round, or done() if all criteria are met."
+                        ),
+                    })
+                    continue
+
+                nudge_count = 0  # reset on successful tool call
+
+                for tc in tool_calls:
+                    result = execute_tool(tc["name"], tc["args"])
+                    preview = result[:120].replace("\n", " ")
+                    print(f"  [{tc['name']}] → {preview}")
+                    messages.append(make_tool_result_message(tc["id"], result))
+
+                    if tc["name"] == "git_commit":
+                        round_done = True
+                        commits_since_push += 1
+                        elapsed_min = (time.time() - last_push_time) / 60
+                        if commits_since_push >= push_every_n_commits or elapsed_min >= push_every_minutes:
+                            git_push()
+                            commits_since_push = 0
+                            last_push_time = time.time()
+                    if tc["name"] == "done" and result.startswith("ACCEPTED"):
+                        research_done = True
+
+            except Exception as e:
+                print(f"  [harness] Unexpected error (continuing): {type(e).__name__}: {e}")
                 continue
-
-            tool_calls, asst_msg = process_response(response)
-            messages.append(asst_msg)
-
-            if not tool_calls:
-                nudge_count += 1
-                if nudge_count >= 2:
-                    print("  [harness] No tool calls after nudge — ending round")
-                    break
-                messages.append({
-                    "role": "user",
-                    "content": (
-                        "You generated text but called no tools. "
-                        "Call git_commit() to end this round, or done() if all criteria are met."
-                    ),
-                })
-                continue
-
-            nudge_count = 0  # reset on successful tool call
-
-            for tc in tool_calls:
-                result = execute_tool(tc["name"], tc["args"])
-                preview = result[:120].replace("\n", " ")
-                print(f"  [{tc['name']}] → {preview}")
-                messages.append(make_tool_result_message(tc["id"], result))
-
-                if tc["name"] == "git_commit":
-                    round_done = True
-                    commits_since_push += 1
-                    elapsed_min = (time.time() - last_push_time) / 60
-                    if commits_since_push >= push_every_n_commits or elapsed_min >= push_every_minutes:
-                        git_push()
-                        commits_since_push = 0
-                        last_push_time = time.time()
-                if tc["name"] == "done" and result.startswith("ACCEPTED"):
-                    research_done = True
 
             if round_done or research_done:
                 break

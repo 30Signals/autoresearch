@@ -15,6 +15,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -49,6 +50,21 @@ Rules:
 - Never ask for confirmation — make decisions and execute
 - Debug failures in the same round; don't give up
 - Save all results (CSV, plots) to results/
+
+CRITICAL — journal.md integrity rules (strictly enforced):
+- Every factual claim (numbers, names, dates, stats, prices) MUST be followed by the exact
+  bash() command output or web_search() result that verified it. No citation = not a fact.
+- Mark unverified hypotheses explicitly: [HYPOTHESIS] <claim>
+- NEVER write facts from memory or training data. If you didn't get it from bash() or
+  web_search() in THIS session, it is a hypothesis, not a fact.
+- If write_file("journal.md", ...) returns a HALLUCINATION WARNING, you MUST immediately
+  verify each flagged claim with bash() or web_search() and rewrite the journal entry
+  with proper citations before proceeding.
+
+web_search() usage:
+- Use web_search() to look up current facts, prices, data, and external information
+- Always cite the query used: "web_search('...') returned: ..."
+- Cross-check important numbers with a second search or bash() verification
 """
 
 # ---------------------------------------------------------------------------
@@ -116,6 +132,25 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "web_search",
+            "description": (
+                "Search the web using DuckDuckGo. Returns titles, URLs, and snippets. "
+                "Use for current facts, prices, data, and external information. "
+                "Always cite the query and results when writing to journal.md."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query"},
+                    "max_results": {"type": "integer", "description": "Max results to return (default 5)", "default": 5},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "git_commit",
             "description": "Stage all changes and commit. Ends the current round.",
             "parameters": {
@@ -148,6 +183,39 @@ TOOLS = [
 ]
 
 # ---------------------------------------------------------------------------
+# Hallucination detection
+# ---------------------------------------------------------------------------
+
+# Patterns that suggest a claim came from training memory rather than verified output
+HALLUCINATION_PATTERNS = [
+    (r'\b(approximately|roughly|around|about)\s+\d[\d,.]*\s*(%|percent|million|billion|thousand|crore|lakh)', "unverified number"),
+    (r'\b(typically|usually|generally|often|commonly|normally)\b', "vague generalization"),
+    (r'\bbased on (my|our) (knowledge|training|understanding|experience)\b', "training memory reference"),
+    (r'\bI (believe|think|know|recall|remember)\b', "unverified personal belief"),
+    (r'\baccording to (?!the (bash|command|output|result|above|following|web_search))', "uncited source"),
+    (r'\b(studies|research|reports?|data)\s+(show|indicate|suggest|find|confirm)\b', "uncited study/report"),
+    (r'\bhistorically\b', "historical claim without source"),
+    (r'\bin (my|our) experience\b', "experiential claim"),
+    (r'\bI (have seen|have found|have noticed|have observed)\b', "unverified observation"),
+    (r'\bas of \d{4}\b', "potentially stale date"),
+]
+
+
+def check_for_hallucinations(content: str) -> list:
+    """Scan journal content for uncited claims. Returns list of warning strings."""
+    warnings = []
+    for i, line in enumerate(content.splitlines(), 1):
+        line_stripped = line.strip()
+        if not line_stripped or line_stripped.startswith("#"):
+            continue
+        for pattern, label in HALLUCINATION_PATTERNS:
+            if re.search(pattern, line_stripped, re.IGNORECASE):
+                warnings.append(f"Line {i} [{label}]: {line_stripped[:120]}")
+                break  # one warning per line
+    return warnings
+
+
+# ---------------------------------------------------------------------------
 # Tool implementations
 # ---------------------------------------------------------------------------
 
@@ -175,9 +243,46 @@ def tool_write_file(path: str, content: str) -> str:
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
-        return f"Written {len(content)} chars to {path}"
+        result = f"Written {len(content)} chars to {path}"
+
+        # Post-write hallucination check for journal.md
+        if Path(path).name == "journal.md":
+            warnings = check_for_hallucinations(content)
+            if warnings:
+                warning_lines = "\n".join(f"  - {w}" for w in warnings[:15])
+                result += (
+                    f"\n\n⚠️  HALLUCINATION WARNING — {len(warnings)} suspicious uncited claim(s) detected:\n"
+                    f"{warning_lines}\n"
+                    "ACTION REQUIRED: verify each flagged claim with bash() or web_search() and "
+                    "rewrite with explicit citations before proceeding."
+                )
+
+        return result
     except Exception as e:
         return f"ERROR: {e}"
+
+
+def tool_web_search(query: str, max_results: int = 5) -> str:
+    try:
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            from duckduckgo_search import DDGS
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=max_results))
+        if not results:
+            return f"No results found for query: {query}"
+        lines = [f"Search results for: {query}\n"]
+        for i, r in enumerate(results, 1):
+            lines.append(f"[{i}] {r.get('title', 'No title')}")
+            lines.append(f"    URL: {r.get('href', '')}")
+            lines.append(f"    {r.get('body', '')}")
+            lines.append("")
+        return "\n".join(lines)
+    except ImportError:
+        return "ERROR: duckduckgo_search not installed. Run: pip install duckduckgo_search"
+    except Exception as e:
+        return f"ERROR: web_search failed: {e}"
 
 
 def tool_read_file(path: str) -> str:
@@ -322,6 +427,7 @@ def build_tool_dispatch(router) -> dict:
         "write_file": tool_write_file,
         "read_file": tool_read_file,
         "list_files": tool_list_files,
+        "web_search": tool_web_search,
         "git_commit": tool_git_commit,
         "done": make_tool_done(router),
     }
@@ -354,8 +460,21 @@ def build_context() -> str:
         journal_content = journal_path.read_text(encoding="utf-8")
         if len(journal_content) > 12000:
             journal_content = "...[truncated to last 12000 chars]...\n" + journal_content[-12000:]
+
+        # Pre-flight: warn about uncited claims carried over from previous rounds
+        preflight_warnings = check_for_hallucinations(journal_content)
+        if preflight_warnings:
+            warning_lines = "\n".join(f"  - {w}" for w in preflight_warnings[:10])
+            journal_preflight = (
+                f"⚠️  PRE-FLIGHT WARNING — {len(preflight_warnings)} potentially uncited claim(s) "
+                f"in journal from previous rounds:\n{warning_lines}\n"
+                "Treat these as HYPOTHESES until re-verified with bash() or web_search() this round.\n\n"
+            )
+        else:
+            journal_preflight = ""
     else:
         journal_content = "(empty — this is round 1)"
+        journal_preflight = ""
 
     return f"""\
 ## PROGRAM (your goal)
@@ -365,7 +484,7 @@ def build_context() -> str:
 {criteria}
 
 ## JOURNAL (your progress log)
-{journal_content}
+{journal_preflight}{journal_content}
 """
 
 

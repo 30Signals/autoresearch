@@ -1,6 +1,6 @@
 # Journal - BLS International Services Ltd Analysis
+
 ## Round 1
-- Created `evals/criteria.md` with the required deliverables and analysis steps.
-- Planned initial research on BLS International Services Ltd.
-## Round 2:
-- Researched business overview of BLS International Services Ltd.
+- Read `program.md`.
+- Created `evals/criteria.md`.
+- Initialized `journal.md`.

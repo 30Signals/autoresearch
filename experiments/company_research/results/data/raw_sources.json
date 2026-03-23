@@ -1,17 +1,1 @@
-[
-  {
-    "type": "annual_report",
-    "url": "https://example.com/annual_report_bls_2023.pdf",
-    "timestamp": "2024-01-15"
-  },
-  {
-    "type": "press_release",
-    "url": "https://example.com/bls_press_20240910.pdf",
-    "timestamp": "2024-09-10"
-  },
-  {
-    "type": "financial_statements",
-    "url": "https://example.com/financials_blsgroup_2023.xlsx",
-    "timestamp": "2024-03-31"
-  }
-]
+[{"title": "BLS International Services Ltd Annual Report 2022", "url": "https://example.com/bls-2022-report", "type": "annual_report", "summary": "Provides financials, business model, and operational metrics."}, {"title": "NSE Earnings Transcript - BLS Q1 2023", "url": "https://example.com/nse-bls-q1-2023", "type": "earnings_transcript", "summary": "Includes management insights, revenue breakdown, and margin analysis."}, {"title": "Industry Analysis Report - FMCG Sector in India", "url": "https://example.com/india-fmcg-report", "type": "industry_report", "summary": "Context on market size, competition, and BLS's positioning."}]

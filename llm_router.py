@@ -79,10 +79,24 @@ class LLMRouter:
         )
 
     def _expand_slots(self, providers: list) -> list:
-        """Expand each provider × model into a flat slot list."""
+        """Expand each provider × model into a flat slot list.
+
+        Supports "enabled": false at the provider level (skips all models)
+        or per-model as {"model": "...", "enabled": false}.
+        """
         slots = []
         for provider in providers:
-            for model in provider["models"]:
+            if not provider.get("enabled", True):
+                logger.info(f"Provider {provider['name']} disabled via enabled:false")
+                continue
+            for entry in provider["models"]:
+                if isinstance(entry, dict):
+                    if not entry.get("enabled", True):
+                        logger.info(f"Model {entry['model']} in {provider['name']} disabled via enabled:false")
+                        continue
+                    model = entry["model"]
+                else:
+                    model = entry
                 slot = {
                     "name": f"{provider['name']}::{model}",
                     "type": provider["type"],

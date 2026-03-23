@@ -1,0 +1,17 @@
+[
+  {
+    "type": "annual_report",
+    "url": "https://example.com/annual_report_bls_2023.pdf",
+    "timestamp": "2024-01-15"
+  },
+  {
+    "type": "press_release",
+    "url": "https://example.com/bls_press_20240910.pdf",
+    "timestamp": "2024-09-10"
+  },
+  {
+    "type": "financial_statements",
+    "url": "https://example.com/financials_blsgroup_2023.xlsx",
+    "timestamp": "2024-03-31"
+  }
+]

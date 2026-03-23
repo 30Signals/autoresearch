@@ -1,8 +1,9 @@
 # Research Journal - BLS International Services Ltd
-## Round 1
-- Created `evals/criteria.md` with specific deliverables.
-- Goal: Research BLS International Services Ltd (NSE: BLS).
+## Round 2
+- Completed search for information using available tools.
+- Identified business model, financial performance, and market position.
+- Extracted data into structured formats.
 - Planned next steps:
-    - Search for information on BLS International Services Ltd using available tools.
-    - Identify business model, financial performance, and market position.
-    - Extract data into structured formats.
+    - Analyze financial performance.
+    - Identify industry competitors.
+    - Refine extraction and analysis for missing insights.

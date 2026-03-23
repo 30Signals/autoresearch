@@ -312,6 +312,8 @@ class LLMRouter:
                 err_str = str(e).lower()
                 if any(kw in err_str for kw in ("decommissioned", "not supported", "deprecated", "no longer")):
                     self._disable_slot(slot, f"Model decommissioned: {e}")
+                elif "thought_signature" in err_str:
+                    self._disable_slot(slot, f"Thinking model requires thought_signature (incompatible): {e}")
                 elif "tool_use_failed" in err_str or "failed_generation" in err_str:
                     if tools:
                         synthetic = self._parse_xml_tool_calls(str(e), tools)

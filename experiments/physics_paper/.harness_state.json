@@ -1,7 +1,7 @@
 {
-  "round_num": 5,
-  "phase": "verify",
-  "verify_rounds_remaining": 2,
-  "commits_since_push": 1,
+  "round_num": 6,
+  "phase": "work",
+  "verify_rounds_remaining": 3,
+  "commits_since_push": 2,
   "last_push_time": 1774336121.893724
 }

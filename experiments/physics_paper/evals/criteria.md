@@ -1,8 +1,7 @@
-### Success Criteria
-- Equation of state curve matches expected shape
-- Agreement with theory in correct regimes
-- Stable results across runs
-- Error within acceptable bounds (~3–5%)
-
-### References
--papers/Equation of State Calculations by Fast Computing Machines.pdf
+- [ ] Python script mc_simulation.py implementing Metropolis Monte Carlo for 2D hard spheres
+- [ ] Data file results/high_density_data.csv with PA/NkT vs A/A0 for high density regime
+- [ ] Data file results/low_density_data.csv with PA/NkT vs A/A0 for low density regime
+- [ ] Plot images/pressure_vs_density.png showing agreement with theory in both density regimes
+- [ ] Plot images/radial_distribution.png of the radial distribution function N(r)
+- [ ] Error analysis data results/error_analysis.csv showing ≤5% deviation from theoretical predictions
+- [ ] Diagnostic file results/diagnostics.csv with acceptance rates, convergence metrics, and finite-size analysis

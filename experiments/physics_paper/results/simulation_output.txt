@@ -1,0 +1,4 @@
+Final acceptance rate: 0.35
+Number of sampled configurations: 80
+No overlaps found in final configuration.
+Periodic boundary condition test passed.

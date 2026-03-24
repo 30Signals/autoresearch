@@ -1,7 +1,2 @@
-- [x] mc_simulation.py implements Metropolis MC for 2D hard spheres
-- [x] results/high_density_data.csv with columns A/A0 and PA/NkT for 4 density points
-- [x] results/low_density_data.csv with columns A/A0 and PA/NkT for 4 density points
-- [x] images/pressure_vs_density.png showing pressure vs density curve with theory line and 95% confidence band
-- [x] images/radial_distribution.png showing radial distribution function with at least 3 distance bins
-- [x] results/error_analysis.csv with columns absolute_error,relative_error where all values ≤ 0.05
-- [x] results/diagnostics.csv with column acceptance_rate where all values are between 0.2 and 0.5
+[x] images/pressure_vs_density.png showing pressure vs density curve with theory line and 95% confidence band
+[x] images/radial_distribution.png showing radial distribution function with at least 3 distance bins

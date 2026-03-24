@@ -285,7 +285,10 @@ def tool_write_file(path: str, content: str) -> str:
 
 def tool_web_search(query: str, max_results: int = 5) -> str:
     try:
-        from ddgs import DDGS
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            from duckduckgo_search import DDGS
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=max_results))
         if not results:

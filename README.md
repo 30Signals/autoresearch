@@ -8,7 +8,7 @@ It uses a **provider router** (`llm_router.py`) that rotates across multiple LLM
 
 1. You write a research goal in `experiments/<name>/program.md`
 2. The agent runs in a loop:
-   - **Round 1**: reads the goal, creates `evals/criteria.md` with measurable success criteria
+   - **Round 1**: reads the goal, creates `evals/criteria.md` with measurable success criteria (skipped if you provide your own)
    - **Every round**: reads `journal.md` for context, writes/runs Python code, appends findings to `journal.md`, commits progress with `git_commit()`
    - **Final round**: calls `done()` when all criteria are met, writes `results/SUMMARY.md`
 3. All outputs (CSVs, plots, reports) go into `experiments/<name>/results/`
@@ -24,7 +24,7 @@ autoresearch/
 ├── experiments/
 │   └── nifty50-backtest/           # example experiment
 │       ├── program.md              # research goal
-│       ├── evals/criteria.md       # success criteria (agent-written)
+│       ├── evals/criteria.md       # success criteria (agent-written, or provide your own)
 │       ├── journal.md              # agent's running notes (agent-written)
 │       └── results/                # outputs: CSVs, plots, reports
 └── .env.example
@@ -60,6 +60,13 @@ python harness.py --experiment experiments/nifty50-backtest
 mkdir experiments/my-research
 echo "# Goal: ..." > experiments/my-research/program.md
 python harness.py --experiment experiments/my-research
+
+# Provide your own success criteria (agent will not overwrite it)
+mkdir -p experiments/my-research/evals
+echo "- [ ] ..." > experiments/my-research/evals/criteria.md
+
+# Resume an interrupted run
+python harness.py --experiment experiments/my-research --continue
 
 # Dry-run: preview context + tools without calling any LLM
 python harness.py --experiment experiments/my-research --dry-run

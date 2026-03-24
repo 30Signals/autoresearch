@@ -1,5 +1,3 @@
-# Criteria for BLS International Services Ltd Analysis
-
 - [ ] Create `results/data/raw_sources.json` with at least 5 distinct sources (filings, news, transcripts)
 - [ ] Create `results/data/extracted_data.json` with key KPIs, financial data, and strategic insights
 - [ ] Create `results/analysis/company_summary.json` with normalized company profile (business overview, revenue streams)

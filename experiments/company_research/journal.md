@@ -1,3 +1,5 @@
+# BLS International Services Ltd Research Journal
+
 ## Round 1: Initialization and Initial Research
 - Created `evals/criteria.md` based on `program.md`.
 - Initiated research on BLS International Services Ltd (NSE: BLS).
@@ -9,6 +11,7 @@
 - "BLS International Services Ltd revenue streams"
 - "BLS International Services Ltd competitors"
 - "BLS International NSE financial performance"
+
 web_search('BLS International Services Ltd business overview and revenue streams') returned:
 
 1. BLS International Services Ltd share price | About BLS Internat. | Key Insights - Screener
@@ -26,7 +29,7 @@ web_search('BLS International Services Ltd business overview and revenue streams
 
 4. BLS International Services 2025 Company Profile: Stock Performance & Earnings | PitchBook
     URL: https://pitchbook.com/profiles/company/162925-57
-    ... As of 13-Jun-2025, BLS International Services’s stock price is $4.31. ... As of 31-Mar-2025, BLS International Services has a trailing 12-month revenue of $259M...
+    ... As of 13-Jun-2025, BLS International Services's stock price is $4.31. ... As of 31-Mar-2025, BLS International Services has a trailing 12-month revenue of $259M...
 
 5. Global Visa & Passport Outsourcing Company | BLS International
     URL: https://www.blsinternational.com/

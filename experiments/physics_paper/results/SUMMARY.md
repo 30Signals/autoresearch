@@ -1,3 +1,3 @@
 # Research Summary
 
-All criteria are now met. Simulation and diagnostic files are generated.
+Completed the diagnostic metrics for the simulation. All criteria are met.

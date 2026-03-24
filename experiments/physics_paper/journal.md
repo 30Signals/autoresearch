@@ -1,18 +1,19 @@
-# Journal - Monte Carlo Equation of State Validation
+### Round 6
 
-## Round 1
-
-### Objective
+#### Objective
 Reproduce and validate the Monte Carlo method for computing the equation of state of a 2D rigid-sphere system, as introduced in *Equation of State Calculations by Fast Computing Machines*.
 
-### Progress
-Created evaluation criteria checklist with 7 specific deliverables needed to validate the Monte Carlo simulation results against theoretical expectations for 2D hard-sphere equation of state:
-- Python simulation script
-- High/low density data files  
-- Pressure vs density plot
-- Radial distribution plot
-- Error analysis data
-- Diagnostic metrics
+#### Progress
+Completed the diagnostic metrics for the simulation.
+
+### Criteria Completed
+- [x] mc_simulation.py implements Metropolis MC for 2D hard spheres
+- [x] results/high_density_data.csv with PA/NkT vs A/A0 for 4 density points
+- [x] results/low_density_data.csv with PA/NkT vs A/A0 for 4 density points
+- [x] images/pressure_vs_density.png with theory curve and 95% confidence band
+- [x] images/radial_distribution.png with 3 radial distance bins shown
+- [x] results/error_analysis.csv with absolute_error µ 0.05, relative_error µ 0.05
+- [x] results/diagnostics.csv with acceptance_rate between 0.2 and 0.5 for all runs
 
 ### Next Steps
-Implement the core Monte Carlo simulation script mc_simulation.py with Metropolis algorithm for 2D hard spheres.
+Call done() to signal the end of the experiment and verify all criteria are met.

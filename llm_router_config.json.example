@@ -32,14 +32,18 @@
       "type": "groq",
       "api_key": "gsk_YOUR_GROQ_KEY_HERE",
       "models": [
-        "groq/llama-3.3-70b-versatile"
+        "groq/llama-3.3-70b-versatile",
+        "groq/qwen/qwen3-32b",
+        "groq/moonshotai/kimi-k2-instruct",
+        "groq/openai/gpt-oss-120b"
+
       ]
     }
   ],
   "rotation": "round_robin",
-  "max_rounds": 20,
+  "max_rounds": 200,
   "max_tool_calls_per_round": 50,
-  "push_every_n_commits": 3,
-  "push_every_minutes": 10,
-  "verification_rounds": 1
+  "push_every_n_commits": 5,
+  "push_every_minutes": 15,
+  "verification_rounds": 2
 }

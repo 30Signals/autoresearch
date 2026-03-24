@@ -40,5 +40,6 @@
   "max_rounds": 20,
   "max_tool_calls_per_round": 50,
   "push_every_n_commits": 3,
-  "push_every_minutes": 10
+  "push_every_minutes": 10,
+  "verification_rounds": 1
 }

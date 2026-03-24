@@ -67,6 +67,27 @@ web_search() usage:
 - Cross-check important numbers with a second search or bash() verification
 """
 
+VERIFICATION_PROMPT = """\
+You are an autonomous research agent in VERIFICATION MODE.
+
+Your ONLY job this round is to independently verify that all claimed results are real and correct.
+Do NOT do new research or add new features.
+
+Verification steps (do all of these):
+1. Read evals/criteria.md — list every criterion marked [x]
+2. For each criterion: re-run the bash() command or web_search() that produced the evidence.
+   Do not trust the journal — re-execute and confirm with fresh output.
+3. Re-read every file in results/ and confirm contents match what criteria.md and journal.md claim.
+4. Cross-check key numbers with a second web_search() where appropriate.
+
+After verification:
+- If everything checks out → call done() with a verification summary
+- If you find any discrepancy or error → fix it, update journal.md with findings,
+  call git_commit(), and the harness will run another round to address remaining issues.
+
+Be skeptical. Treat every claim as unverified until you have re-executed it yourself.
+"""
+
 # ---------------------------------------------------------------------------
 # Tool definitions (OpenAI function-call format)
 # ---------------------------------------------------------------------------
@@ -264,10 +285,7 @@ def tool_write_file(path: str, content: str) -> str:
 
 def tool_web_search(query: str, max_results: int = 5) -> str:
     try:
-        try:
-            from ddgs import DDGS
-        except ImportError:
-            from duckduckgo_search import DDGS
+        from ddgs import DDGS
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=max_results))
         if not results:
@@ -447,7 +465,7 @@ def execute_tool(name: str, args: dict, dispatch: dict) -> str:
 # Context builder
 # ---------------------------------------------------------------------------
 
-def build_context() -> str:
+def build_context(round_num: int = 0, phase: str = "work") -> str:
     program = tool_read_file("program.md")
     criteria_path = Path("evals/criteria.md")
     if criteria_path.exists():
@@ -461,7 +479,7 @@ def build_context() -> str:
         if len(journal_content) > 12000:
             journal_content = "...[truncated to last 12000 chars]...\n" + journal_content[-12000:]
 
-        # Pre-flight: warn about uncited claims carried over from previous rounds
+        # Pre-flight hallucination scan
         preflight_warnings = check_for_hallucinations(journal_content)
         if preflight_warnings:
             warning_lines = "\n".join(f"  - {w}" for w in preflight_warnings[:10])
@@ -472,9 +490,20 @@ def build_context() -> str:
             )
         else:
             journal_preflight = ""
+
+        # Per-round verify-first instruction (work mode, not the first round)
+        if round_num > 0 and phase == "work":
+            verify_first = (
+                "⚡ VERIFY FIRST — before doing new work this round:\n"
+                "Re-run the key bash()/web_search() commands from the last round to confirm "
+                "outputs are still valid. If anything changed or failed, fix it before proceeding.\n\n"
+            )
+        else:
+            verify_first = ""
     else:
         journal_content = "(empty — this is round 1)"
         journal_preflight = ""
+        verify_first = ""
 
     return f"""\
 ## PROGRAM (your goal)
@@ -484,7 +513,7 @@ def build_context() -> str:
 {criteria}
 
 ## JOURNAL (your progress log)
-{journal_preflight}{journal_content}
+{verify_first}{journal_preflight}{journal_content}
 """
 
 
@@ -584,26 +613,31 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
     effective_max_tools = max_tool_calls_per_round or cfg.get("max_tool_calls_per_round", 50)
     push_every_n_commits = cfg.get("push_every_n_commits", 5)
     push_every_minutes = cfg.get("push_every_minutes", 15)
+    verification_rounds = cfg.get("verification_rounds", 1)
 
     commits_since_push = 0
     last_push_time = time.time()
+    phase = "work"                   # "work" | "verify"
+    verify_rounds_remaining = verification_rounds
 
     print(f"Starting research: max_rounds={effective_max_rounds}, max_tool_calls={effective_max_tools}")
     print(f"Auto-push: every {push_every_n_commits} commits or {push_every_minutes} min")
+    print(f"Verification rounds after done(): {verification_rounds}")
 
     for round_num in range(effective_max_rounds):
         print(f"\n{'='*60}")
-        print(f"=== Round {round_num + 1} / {effective_max_rounds} ===")
+        print(f"=== Round {round_num + 1} / {effective_max_rounds}  [{phase.upper()}] ===")
         print(f"{'='*60}")
 
-        context = build_context()
+        system_prompt = VERIFICATION_PROMPT if phase == "verify" else SYSTEM_PROMPT
+        context = build_context(round_num=round_num, phase=phase)
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": context},
         ]
 
         round_done = False
-        research_done = False
+        truly_done = False
         nudge_count = 0
 
         for tool_call_num in range(effective_max_tools):
@@ -632,7 +666,7 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
                     })
                     continue
 
-                nudge_count = 0  # reset on successful tool call
+                nudge_count = 0
 
                 for tc in tool_calls:
                     result = execute_tool(tc["name"], tc["args"], dispatch)
@@ -642,24 +676,39 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
 
                     if tc["name"] == "git_commit":
                         round_done = True
+                        # git_commit in verify mode means issues found — back to work
+                        if phase == "verify":
+                            print("  [harness] Verify round found issues — switching back to work mode")
+                            phase = "work"
+                            verify_rounds_remaining = verification_rounds
                         commits_since_push += 1
                         elapsed_min = (time.time() - last_push_time) / 60
                         if commits_since_push >= push_every_n_commits or elapsed_min >= push_every_minutes:
                             git_push()
                             commits_since_push = 0
                             last_push_time = time.time()
+
                     if tc["name"] == "done" and result.startswith("ACCEPTED"):
-                        research_done = True
+                        if phase == "work" and verify_rounds_remaining > 0:
+                            # Transition to verification mode
+                            verify_rounds_remaining -= 1
+                            phase = "verify"
+                            round_done = True
+                            print(f"  [harness] Work accepted — entering verification mode "
+                                  f"({verify_rounds_remaining + 1} round(s) remaining)")
+                        else:
+                            # Verification passed (or no verify rounds configured)
+                            truly_done = True
 
             except Exception as e:
                 print(f"  [harness] Unexpected error (continuing): {type(e).__name__}: {e}")
                 continue
 
-            if round_done or research_done:
+            if round_done or truly_done:
                 break
 
-        if research_done:
-            print("\n[harness] Research complete! Auto-committing and pushing...")
+        if truly_done:
+            print("\n[harness] Research complete and verified! Auto-committing and pushing...")
             subprocess.run(["git", "add", "-A"])
             subprocess.run([
                 "git", "commit",

@@ -1,7 +1,7 @@
-- [ ] Python script mc_simulation.py implementing Metropolis Monte Carlo for 2D hard spheres
-- [ ] Data file results/high_density_data.csv with PA/NkT vs A/A0 for high density regime
-- [ ] Data file results/low_density_data.csv with PA/NkT vs A/A0 for low density regime
-- [ ] Plot images/pressure_vs_density.png showing agreement with theory in both density regimes
-- [ ] Plot images/radial_distribution.png of the radial distribution function N(r)
-- [ ] Error analysis data results/error_analysis.csv showing ≤5% deviation from theoretical predictions
-- [ ] Diagnostic file results/diagnostics.csv with acceptance rates, convergence metrics, and finite-size analysis
+- [ ] mc_simulation.py implements Metropolis MC for 2D hard spheres
+- [ ] results/high_density_data.csv with PA/NkT vs A/A0 for 4 density points
+- [ ] results/low_density_data.csv with PA/NkT vs A/A0 for 4 density points
+- [ ] images/pressure_vs_density.png with theory curve and 95% confidence band
+- [ ] images/radial_distribution.png with 3 radial distance bins shown
+- [ ] results/error_analysis.csv with absolute_error ≤ 0.05, relative_error ≤ 0.05
+- [ ] results/diagnostics.csv with acceptance_rate between 0.2 and 0.5 for all runs

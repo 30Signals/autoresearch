@@ -1,9 +1,7 @@
-# Research Goal: Monte Carlo Equation of State Validation
+# Monte Carlo Equation of State Validation
 
 ## Objective
 Reproduce and validate the Monte Carlo method for computing the equation of state of a 2D rigid-sphere system, as introduced in *Equation of State Calculations by Fast Computing Machines*.
-
----
 
 ## Research Hypothesis
 1. A Metropolis Monte Carlo process correctly samples configurations proportional to the Boltzmann distribution:
@@ -18,8 +16,6 @@ Reproduce and validate the Monte Carlo method for computing the equation of stat
    - Free volume theory at high density
    - Virial expansion at low density
 
----
-
 ## System Definition
 
 ### Physical Model
@@ -29,8 +25,6 @@ Reproduce and validate the Monte Carlo method for computing the equation of stat
   - No overlap allowed
   - Energy = 0 (valid), ∞ (overlap)
 
----
-
 ## Methodology
 
 ### Step 1: Initialization
@@ -39,8 +33,6 @@ Reproduce and validate the Monte Carlo method for computing the equation of stat
   - Box size = 1
   - Particle diameter d₀
   - Density parameter (A / A₀)
-
----
 
 ### Step 2: Monte Carlo Simulation (Metropolis Algorithm)
 
@@ -55,13 +47,9 @@ Acceptance rule:
 Note:
 - For hard spheres, ΔE ∈ {0, ∞}, so acceptance reduces to overlap check
 
----
-
 ### Step 3: Equilibration
 - Run 10–20 cycles without recording data
 - Discard early configurations
-
----
 
 ### Step 4: Sampling
 For each configuration after equilibration:
@@ -70,8 +58,6 @@ For each configuration after equilibration:
 - Bin distances into zones
 - Estimate density near contact distance d₀
 
----
-
 ### Step 5: Pressure Computation
 Compute:
 - n̄ = density at contact
@@ -79,16 +65,12 @@ Compute:
 Then:
 - (PA / NkT) = 1 + (π d₀² n̄) / 2
 
----
-
 ### Step 6: Parameter Sweep
 Vary density by adjusting particle diameter or box scaling.
 
 For each density:
 - Run full simulation
 - Compute pressure
-
----
 
 ## Experimental Variables
 
@@ -102,8 +84,6 @@ For each density:
 - Radial distribution function N(r)
 - Acceptance rate
 
----
-
 ## Validation Plan
 
 ### 1. Equation of State Curve
@@ -112,19 +92,13 @@ For each density:
   - Reference simulation results
   - Theoretical expectations
 
----
-
 ### 2. Regime Validation
 - High density → match free volume theory
 - Low density → match virial expansion
 
----
-
 ### 3. Error Analysis
 - Compute % error vs reference values
 - Target accuracy: ~3%
-
----
 
 ### 4. Convergence Checks
 - Run multiple seeds
@@ -132,30 +106,20 @@ For each density:
   - Different N
   - Different step sizes
 
----
-
 ## Failure Modes
 
 ### 1. Poor Mixing
 - Step size too small → slow exploration
 - Step size too large → high rejection rate
 
----
-
 ### 2. Lack of Equilibration
 - Using early samples leads to biased results
-
----
 
 ### 3. Finite Size Effects
 - Small N → noisy estimates
 
----
-
 ### 4. Boundary Errors
 - Incorrect periodic boundary implementation
-
----
 
 ## Extensions
 
@@ -168,8 +132,6 @@ For each density:
 ### Level 4
 - Extend to 3D systems
 - Investigate phase transitions
-
----
 
 ## Output Format
 
@@ -189,15 +151,11 @@ For each density:
 ### 4. Conclusion
 - Validation status: Confirmed / Partially Confirmed / Refuted
 
----
-
 ## Success Criteria
 - Equation of state curve matches expected shape
 - Agreement with theory in correct regimes
 - Stable results across runs
 - Error within acceptable bounds (~3–5%)
-
----
 
 ## Tooling
 
@@ -212,5 +170,3 @@ For each density:
 - JAX / PyTorch (for scaling experiments)
 
 ---
-## REFERENCES
-paper_summary.md : this file contains a summary of key claims of the paper

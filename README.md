@@ -2,7 +2,7 @@
 
 An autonomous AI research agent that reads a goal from `program.md`, writes its own code, runs experiments, self-evaluates, and commits results to git — round by round.
 
-It uses a **free token router** (`llm_router.py`) that rotates across multiple LLM providers (OpenRouter, Gemini, Groq) to get effectively unlimited free inference.
+It uses a **provider router** (`llm_router.py`) that rotates across multiple LLM providers (OpenRouter, Gemini, Groq) to work around per-provider rate limits.
 
 ## How it works
 

@@ -7,6 +7,7 @@ and commits to git after each round.
 
 Usage:
     python harness.py                        # run research
+    python harness.py --continue             # resume an interrupted run
     python harness.py --dry-run              # print context + tools schema, exit
     python harness.py --config path/to/cfg   # override config path
     python harness.py --max-rounds N         # override max rounds
@@ -521,6 +522,41 @@ def build_context(round_num: int = 0, phase: str = "work") -> str:
 
 
 # ---------------------------------------------------------------------------
+# State persistence (for --continue)
+# ---------------------------------------------------------------------------
+
+STATE_FILE = ".harness_state.json"
+
+
+def save_state(round_num: int, phase: str, verify_rounds_remaining: int,
+               commits_since_push: int, last_push_time: float):
+    state = {
+        "round_num": round_num,
+        "phase": phase,
+        "verify_rounds_remaining": verify_rounds_remaining,
+        "commits_since_push": commits_since_push,
+        "last_push_time": last_push_time,
+    }
+    Path(STATE_FILE).write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+
+def load_state() -> dict | None:
+    p = Path(STATE_FILE)
+    if p.exists():
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"  [harness] WARNING: Could not load state file: {e}")
+    return None
+
+
+def clear_state():
+    p = Path(STATE_FILE)
+    if p.exists():
+        p.unlink()
+
+
+# ---------------------------------------------------------------------------
 # Git configuration
 # ---------------------------------------------------------------------------
 
@@ -601,7 +637,7 @@ def git_push():
         print(f"  [harness] git push failed: {result.stderr.strip()}")
 
 
-def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=None):
+def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=None, continue_run=False):
     if not Path("program.md").exists():
         print("ERROR: program.md not found. Create it first.")
         sys.exit(1)
@@ -618,19 +654,36 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
     push_every_minutes = cfg.get("push_every_minutes", 15)
     verification_rounds = cfg.get("verification_rounds", 1)
 
+    # Default initial state
+    start_round = 0
     commits_since_push = 0
     last_push_time = time.time()
     phase = "work"                   # "work" | "verify"
     verify_rounds_remaining = verification_rounds
 
+    if continue_run:
+        state = load_state()
+        if state:
+            start_round = state.get("round_num", 0)
+            phase = state.get("phase", "work")
+            verify_rounds_remaining = state.get("verify_rounds_remaining", verification_rounds)
+            commits_since_push = state.get("commits_since_push", 0)
+            last_push_time = state.get("last_push_time", time.time())
+            print(f"[harness] Resuming from round {start_round + 1}, phase={phase}")
+        else:
+            print("[harness] --continue specified but no state file found — starting fresh")
+
     print(f"Starting research: max_rounds={effective_max_rounds}, max_tool_calls={effective_max_tools}")
     print(f"Auto-push: every {push_every_n_commits} commits or {push_every_minutes} min")
     print(f"Verification rounds after done(): {verification_rounds}")
 
-    for round_num in range(effective_max_rounds):
+    for round_num in range(start_round, effective_max_rounds):
         print(f"\n{'='*60}")
         print(f"=== Round {round_num + 1} / {effective_max_rounds}  [{phase.upper()}] ===")
         print(f"{'='*60}")
+
+        # Persist state so --continue can resume from this round if killed
+        save_state(round_num, phase, verify_rounds_remaining, commits_since_push, last_push_time)
 
         system_prompt = VERIFICATION_PROMPT if phase == "verify" else SYSTEM_PROMPT
         context = build_context(round_num=round_num, phase=phase)
@@ -719,10 +772,12 @@ def run_research(config_path=None, max_rounds=None, max_tool_calls_per_round=Non
                 "-m", "auto-commit: research complete", "--allow-empty"
             ])
             git_push()
+            clear_state()
             print("[harness] Done.")
             return
 
     print(f"\n[harness] Reached max rounds ({effective_max_rounds}). Research loop ended.")
+    print(f"[harness] State saved — resume with --continue")
 
 
 # ---------------------------------------------------------------------------
@@ -743,6 +798,8 @@ def main():
                         help="Override max tool calls per round from config")
     parser.add_argument("--experiment", default=None, metavar="DIR",
                         help="Path to experiment folder (contains program.md). Created if missing.")
+    parser.add_argument("--continue", dest="continue_run", action="store_true",
+                        help="Resume a previously interrupted run from saved state")
     args = parser.parse_args()
 
     # Resolve config path before any chdir, so relative paths still work
@@ -773,6 +830,7 @@ def main():
         config_path=config_path,
         max_rounds=args.max_rounds,
         max_tool_calls_per_round=args.max_tool_calls,
+        continue_run=args.continue_run,
     )
 
 
